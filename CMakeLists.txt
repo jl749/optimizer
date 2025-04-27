@@ -8,6 +8,8 @@ set(CMAKE_OSX_DEPLOYMENT_TARGET 10.15 CACHE STRING "Minimum OS X deployment vers
 
 project(onnx_optimizer C CXX)
 
+# NOTE: set({var name} {value} CACHE {dtype} {doctsring}) is for cmake-gui
+#   it should behave exactly same as normal set
 set(CMAKE_CXX_STANDARD 17)
 
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
@@ -19,19 +21,25 @@ if (NOT DEFINED ONNX_TARGET_NAME)
   set(ONNX_TARGET_NAME onnx)
 endif()
 
+# NOTE: argparse cli flags (e.g. option({flag name} {help} {DEFAULT}))
 option(ONNX_OPT_USE_SYSTEM_PROTOBUF "" OFF)
-if(NOT ONNX_OPT_USE_SYSTEM_PROTOBUF)
+if(NOT ONNX_OPT_USE_SYSTEM_PROTOBUF) # use third party protobuf
   option(protobuf_BUILD_TESTS "" OFF)
   option(protobuf_MSVC_STATIC_RUNTIME "" ${ONNX_USE_MSVC_STATIC_RUNTIME})
+  message(STATUS "[DEBUG] protobuf_MSVC_STATIC_RUNTIME = ${protobuf_MSVC_STATIC_RUNTIME}")
+  # NOTE: add_subdirectory({protobuf cmake dir}) if (NOT TARGET libprotobuf)
   add_subdirectory_if_no_target(${PROJECT_SOURCE_DIR}/third_party/protobuf/cmake libprotobuf)
 endif()
 
 
+# NOTE: add_subdirectory({onnx cmake dir}) if (NOT TARGET onnx)
 set(ONNX_ROOT ${PROJECT_SOURCE_DIR}/third_party/onnx)
 add_subdirectory_if_no_target(${ONNX_ROOT} ${ONNX_TARGET_NAME})
 
+# NOTE: read VERSION_NUMBER file and strip string (no space)
 file(READ "${PROJECT_SOURCE_DIR}/VERSION_NUMBER" ONNX_OPTIMIZER_VERSION)
 string(STRIP "${ONNX_OPTIMIZER_VERSION}" ONNX_OPTIMIZER_VERSION)
+message(STATUS "[DEBUG] ONNX_OPTIMIZER_VERSION = ${ONNX_OPTIMIZER_VERSION}")
 
 file(GLOB onnx_opt_srcs "onnxoptimizer/*.cc"
     "onnxoptimizer/*.h"
@@ -40,6 +48,9 @@ file(GLOB onnx_opt_srcs "onnxoptimizer/*.cc"
     )
 list(REMOVE_ITEM onnx_opt_srcs "${PROJECT_SOURCE_DIR}/onnxoptimizer/cpp2py_export.cc")
 
+# NOTE: add_library(onnx_optimizer {onnxoptimizer/*.cc|h})
+#       target_link_libraries(onnx_optimizer PUBLIC onnx)
+#       target_include_directories(onnx_optimizer_c_api PUBLIC {include dir})
 onnxopt_add_library(onnx_optimizer ${onnx_opt_srcs})
 target_link_libraries(onnx_optimizer PUBLIC ${ONNX_TARGET_NAME})
 target_include_directories(onnx_optimizer PUBLIC
@@ -47,6 +58,8 @@ target_include_directories(onnx_optimizer PUBLIC
     $<INSTALL_INTERFACE:include>
     )
 
+# NOTE: add_executable(onnx_optimizer_exec {cpp file})
+#       target_link_libraries(onnx_optimizer_exec onnx_optimizer)
 onnxopt_add_executable(onnx_optimizer_exec examples/onnx_optimizer_exec.cpp)
 target_link_libraries(onnx_optimizer_exec onnx_optimizer)
 
@@ -55,6 +68,9 @@ file(GLOB onnx_opt_c_api_srcs "onnxoptimizer/c_api/*.cc"
   "onnxoptimizer/c_api/*.h"
     )
 
+# NOTE: add_library(onnx_optimizer_c_api {onnxoptimizer/c_api/*.cc|h})
+#       target_link_libraries(onnx_optimizer_c_api PRIVATE onnx)
+#       target_include_directories(onnx_optimizer_c_api PUBLIC {include dir})
 onnxopt_add_library(onnx_optimizer_c_api ${onnx_opt_c_api_srcs})
 target_link_libraries(onnx_optimizer_c_api PRIVATE onnx_optimizer)
 target_include_directories(onnx_optimizer_c_api PUBLIC
@@ -70,8 +86,14 @@ if(BUILD_ONNX_PYTHON)
       set(PY_EXT_SUFFIX ".so")
     endif()
   endif()
+  # NOTE: -DPY_EXT_SUFFIX=".cpython-312-x86_64-linux-gnu.so"
   find_package(Python COMPONENTS Interpreter REQUIRED)
 
+  # NOTE: add_library(onnx_opt_cpp2py_export MODULE {file excluded from target onnxoptimizer})
+  #         MODULE to be dynamically loaded during runtime (e.g. dlopen)
+  #         e.g. import onnxoptimizer.onnx_opt_cpp2py_export as C
+  #       set_target_properties(...) TODO
+  #       target_include_directories(onnx_opt_cpp2py_export {include dir})
   onnxopt_add_library(onnx_opt_cpp2py_export MODULE "onnxoptimizer/cpp2py_export.cc")
   set_target_properties(onnx_opt_cpp2py_export PROPERTIES PREFIX "")
   set_target_properties(onnx_opt_cpp2py_export
@@ -84,8 +106,10 @@ if(BUILD_ONNX_PYTHON)
                              $<INSTALL_INTERFACE:include>
                              ${Python_INCLUDE_DIR})
   # pybind11 is a header only lib
+  # NOTE: find_package(pybind11 {version})
   find_package(pybind11 2.2)
   if(pybind11_FOUND)
+    # NOTE: target_include_directories(onnx_opt_cpp2py_export PUBLIC {include dir})
     target_include_directories(onnx_opt_cpp2py_export PUBLIC
       ${pybind11_INCLUDE_DIRS})
   else()
@@ -112,6 +136,8 @@ if(BUILD_ONNX_PYTHON)
                           PRIVATE $<TARGET_OBJECTS:onnx_optimizer>)
   else()
     # Assume everything else is like gcc
+    # NOTE: target_link_libraries(onnx_opt_cpp2py_export PRIVATE TODO)
+    #       set_target_properties(onnx_opt_cpp2py_export PROPERTIES TODO)
     target_link_libraries(onnx_opt_cpp2py_export
                           PRIVATE "-Wl,--whole-archive" $<TARGET_FILE:onnx_optimizer>
                                   "-Wl,--no-whole-archive")

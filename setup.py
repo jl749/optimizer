@@ -32,7 +32,7 @@ CMAKE_BUILD_DIR = os.path.join(TOP_DIR, '.setuptools-cmake-build')
 WINDOWS = (os.name == 'nt')
 MACOS = sys.platform.startswith("darwin")
 
-CMAKE = find_executable('cmake')
+CMAKE = find_executable('cmake')  # NOTE: cmake executable path
 
 install_requires = []
 setup_requires = []
@@ -139,12 +139,17 @@ class cmake_build(setuptools.Command):
 
     def finalize_options(self):
         if sys.version_info[0] >= 3:
+            # NOTE: parse `python3 setup.py --parallel {n}` also ensure self.finalized=True
+            #   src_cmd_obj={build object - setuptools.command.build.build}
+            #   option_paris=('parallel', 'jobs')
+            #   cmake_build.jobs = src_cmd_obj.parallel
             self.set_undefined_options('build', ('parallel', 'jobs'))
         if self.jobs is None and os.getenv("MAX_JOBS") is not None:
             self.jobs = os.getenv("MAX_JOBS")
         self.jobs = multiprocessing.cpu_count() if self.jobs is None else int(self.jobs)
 
     def run(self):
+        # NOTE: python3 setup.py build (step2)
         if cmake_build.built:
             return
         cmake_build.built = True
@@ -153,7 +158,6 @@ class cmake_build(setuptools.Command):
 
         with cd(CMAKE_BUILD_DIR):
             build_type = 'Release'
-            # configure
             cmake_args = [
                 CMAKE,
                 '-DPython_INCLUDE_DIR={}'.format(sysconfig.get_python_inc()),
@@ -206,6 +210,20 @@ class cmake_build(setuptools.Command):
                 log.info('Extra cmake args: {}'.format(extra_cmake_args))
                 cmake_args.extend(extra_cmake_args)
             cmake_args.append(TOP_DIR)
+            # NOTE: run cmake command inside the build directory
+            #   e.g.
+            #   cmake \
+            #       -DPython_INCLUDE_DIR={python header folder} \
+            #       -DPython_EXECUTABLE={python executable path} \
+            #       -DBUILD_ONNX_PYTHON=ON \
+            #       -DONNX_USE_LITE_PROTO=ON \
+            #       -DCMAKE_EXPORT_COMPILE_COMMANDS=ON \
+            #       -DONNX_NAMESPACE=onnx \
+            #       -DPY_EXT_SUFFIX=.cpython-312-x86_64-linux-gnu.so \
+            #       -DONNX_OPT_USE_SYSTEM_PROTOBUF=OFF \
+            #       -DCMAKE_BUILD_TYPE=Release \
+            #       -DONNX_ML=1 \
+            #       /home/simp/GIT/optimizer
             subprocess.check_call(cmake_args)
 
             build_args = [CMAKE, '--build', os.curdir]
@@ -214,13 +232,20 @@ class cmake_build(setuptools.Command):
                 build_args.extend(['--', '/maxcpucount:{}'.format(self.jobs)])
             else:
                 build_args.extend(['--', '-j', str(self.jobs)])
-            subprocess.check_call(build_args)
+
+            # NOTE: build cmake command inside the build directory
+            # e.g.
+            # cmake --build . --j 12
+            subprocess.check_call(build_args)  # NOTE: run cmake build
 
 
 class build_py(setuptools.command.build_py.build_py):
     def run(self):
+        # NOTE: when `python3 setup.py build`
         self.run_command('create_version')
         self.run_command('cmake_build')
+
+        import pdb;pdb.set_trace()  # TODO: debug
 
         generated_python_files = \
             glob.glob(os.path.join(CMAKE_BUILD_DIR, 'onnxoptimizer', '*.py')) + \
@@ -236,16 +261,19 @@ class build_py(setuptools.command.build_py.build_py):
 
 class develop(setuptools.command.develop.develop):
     def run(self):
+        import pdb;pdb.set_trace()  # TODO: debug
         self.run_command('build_py')
         setuptools.command.develop.develop.run(self)
 
 
 class build_ext(setuptools.command.build_ext.build_ext):
     def run(self):
+        import pdb;pdb.set_trace()  # TODO: debug
         self.run_command('cmake_build')
         setuptools.command.build_ext.build_ext.run(self)
 
     def build_extensions(self):
+        import pdb;pdb.set_trace()  # TODO: debug
         for ext in self.extensions:
             fullname = self.get_ext_fullname(ext.name)
             filename = os.path.basename(self.get_ext_filename(fullname))
@@ -309,7 +337,8 @@ install_requires.extend([
 # Test
 ################################################################################
 
-setup_requires.append('pytest-runner')
+# NOTE: pytest-runner has been removed as it uses deprecated features of setuptools
+# setup_requires.append('pytest-runner')
 
 if sys.version_info[0] == 3:
     # Mypy doesn't work with Python 2
@@ -324,6 +353,7 @@ from pathlib import Path
 this_directory = Path(__file__).parent
 long_description = (this_directory / "README.md").read_text()
 
+import pdb;pdb.set_trace()  # TODO: debug entry point
 setuptools.setup(
     name="onnxoptimizer",
     version=VersionInfo.version,
