@@ -11,9 +11,12 @@ PassManager::PassManager() {}
 PassManager::~PassManager() {}
 
 GeneralPassManager::~GeneralPassManager() {
-  this->passes.clear();
+  this->passes.clear(); // dereference shared_ptr saved under vector
 }
 void GeneralPassManager::add(std::shared_ptr<Pass> pass) {
+  // std::move convert `pass` to rvalue reference
+  // by doing so original shared_ptr directing `pass` get dereferenced
+  // and we move the ownership to `this->passes` vector
   this->passes.push_back(std::move(pass));
 }
 

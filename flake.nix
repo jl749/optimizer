@@ -23,6 +23,7 @@
       pkgs.mkShell {
         nativeBuildInputs = [];
         buildInputs = with pkgs; [
+          bashInteractive # make sure `ps -p $$` stays interactive
           pythonEnv
         ];
         packages = [];

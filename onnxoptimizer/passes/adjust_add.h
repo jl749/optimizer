@@ -38,18 +38,24 @@ namespace ONNX_NAMESPACE {
 namespace optimization {
 
 struct AdjustAdd final : public PredicateBasedPass {
+  // call constructor
   explicit AdjustAdd()
       : PredicateBasedPass(PassType::Immutable, PassEfficiency::Complete,
                            PassOptimizationType::Compute) {}
+
+  // overridden getter
   std::string getPassName() const override {
     return "adjust_add";
   }
 
+  // if pattern matches the description
   bool patternMatchPredicate(Node* node) override {
-    return CheckKind(node, kAdd) && IsConstantTensor(node, 0) &&
+    // node->kind() == Symbol(BuiltinSymbol::kAdd) && node->input(0)->node()->kind() == kConstant && node->input(1)->node()->kind() != kConstant
+    return CheckKind(node, BuiltinSymbol::kAdd) && IsConstantTensor(node, 0) &&
            !IsConstantTensor(node, 1);
   }
 
+  // apply transformation
   bool runTransform(Node* n, Graph& graph,
                     NodeDestroyType& destroy_current) override {
     auto* old = n->replaceInput(0, n->inputs()[1]);

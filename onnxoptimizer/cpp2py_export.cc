@@ -15,6 +15,13 @@ using namespace pybind11::literals;
 PYBIND11_MODULE(onnx_opt_cpp2py_export, onnx_opt_cpp2py_export) {
   onnx_opt_cpp2py_export.doc() = "ONNX Optimizer";
 
+  /**
+   * define `optimize` function
+   * expecting python str and List[str]
+   * ONNX_NAMESPACE::ParseProtoFromPyBytes({empty ModelProto ref}, {const py::bytes ref})
+   * ONNX_NAMESPACE::optimization::Optimize({const ModelProto ref}, {const vect<str> ref})
+   * {return ModelProto as string in py::bytes}
+   */
   onnx_opt_cpp2py_export.def(
       "optimize",
       [](const py::bytes& bytes, const std::vector<std::string>& names) {

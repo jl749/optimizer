@@ -16,8 +16,11 @@ namespace optimization {
 struct PassManagerAnalysis {};
 struct EmptyPassManagerAnalysis : PassManagerAnalysis {};
 
-// Base class of all PassManager's. The class should be able to add new passes
-// as well as run the passes given a graph.
+/**
+ * Abstract calss
+ *   add: add new passes
+ *   run: run the passes
+ */
 class PassManager {
  public:
   PassManager();

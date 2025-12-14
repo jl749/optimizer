@@ -69,7 +69,7 @@ struct GlobalPassRegistry {
   std::vector<std::string> pass_names;
 
   GlobalPassRegistry() {
-    // Register the optimization passes to the optimizer.
+    // `GlobalPassRegistry::registerPass` the optimization passes when initialized
     registerPass<AdjustAdd>();
     registerPass<RenameInputOutput>();
     registerPass<SetUniqueNameForNodes>();
@@ -123,6 +123,7 @@ struct GlobalPassRegistry {
     this->passes.clear();
   }
 
+  // search map
   std::shared_ptr<Pass> find(std::string pass_name) {
     auto it = this->passes.find(pass_name);
     ONNX_ASSERTM(it != this->passes.end(), "pass %s is unknown.",
@@ -139,8 +140,8 @@ struct GlobalPassRegistry {
   void registerPass() {
     static_assert(std::is_base_of<Pass, T>::value, "T must inherit from Pass");
     std::shared_ptr<Pass> pass(new T());
-    passes[pass->getPassName()] = pass;
-    pass_names.emplace_back(pass->getPassName());
+    this->passes[pass->getPassName()] = pass;
+    this->pass_names.emplace_back(pass->getPassName());
   }
 };
 }  // namespace optimization

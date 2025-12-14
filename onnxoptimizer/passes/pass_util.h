@@ -93,11 +93,16 @@ Create_SupportedTypeOfTensor(std::vector<std::string>, STRING);
 #undef Create_SupportedTypeOfTensor
 }  // namespace
 
+// limit NodeOrValue = {`Value` or `Node`} overload
 template <typename NodeOrValue, typename Sym,
           typename = std::enable_if_t<std::is_same_v<NodeOrValue, Value> ||
                                       std::is_same_v<NodeOrValue, Node>>>
 bool CheckKind(const NodeOrValue* nv, const Sym& symbol) {
+  // BuiltinSymbol to Symbol
+  // Symbol s = Symbol(symbol);  e.g. symbol = const Sym& BuiltinSymbol::kAdd
   Symbol s = ToSymbol<typename CanonicalizeSymbolType<Sym>::type>::Call(symbol);
+  
+  // because we limited NodeOrValue types we can determine the if statements during the compile time
   if constexpr (std::is_same_v<NodeOrValue, Value>) {
     return nv->node()->kind() == s;
   }

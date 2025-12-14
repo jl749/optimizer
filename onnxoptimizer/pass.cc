@@ -59,7 +59,7 @@ PredicateBasedPass::~PredicateBasedPass() {}
 unsigned int PredicateBasedPass::_runPassInternal(Graph& graph) {
   unsigned int num_changes = false;
   for (auto it = graph.begin(); it != graph.end(); ++it) {
-    auto* n = *it;
+    auto* n = *it; // Node*
     num_changes += this->DescendOnGraphAttributesAndCount(
         n, [this](Graph& g) { return _runPassInternal(g); });
     if (this->patternMatchPredicate(n)) {
