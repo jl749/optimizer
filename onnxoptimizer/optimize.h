@@ -48,28 +48,44 @@ struct Optimizer {
       return mp_out;
     }
 
-  private:
-    std::shared_ptr<PassManager> pass_manager;
+    ModelProto mp_out = PrepareOutput(mp_in);
+    this->pass_manager->run(*g);
+    ExportModelProto(&mp_out, g);
 
-    ModelProto AddInitializerToInput(const ModelProto &original_model) {
-      ModelProto model = original_model;
-      std::vector<std::string> input_names;
-      for (const auto &x : model.graph().input()) {
-        input_names.push_back(x.name());
-      }
-      for (const auto &x : model.graph().initializer()) {
-        if (std::find(input_names.begin(), input_names.end(), x.name()) ==
-            input_names.end()) {
-          auto *value_info = model.mutable_graph()->add_input();
-          value_info->set_name(x.name());
-          TypeProto *type = value_info->mutable_type();
-          auto *tensor = type->mutable_tensor_type();
-          tensor->set_elem_type(x.data_type());
-          auto *shape = tensor->mutable_shape();
-          for (const auto &dim : x.dims()) {
-            TensorShapeProto::Dimension *new_dim = shape->add_dim();
-            new_dim->set_dim_value(dim);
-          }
+    // Maybe we can optimize these functions, now just copy
+    AddFunctionsToModel(mp_in, mp_out);
+    return mp_out;
+  }
+
+ private:
+  std::shared_ptr<PassManager> pass_manager;
+
+  void AddFunctionsToModel(const ModelProto &original_model,
+                           ModelProto &output_model) {
+    for (const auto& function_proto : original_model.functions()) {
+      auto* p_f = output_model.add_functions();
+      p_f->CopyFrom(function_proto);
+    }
+  }
+
+  ModelProto AddInitializerToInput(const ModelProto &original_model) {
+    ModelProto model = original_model;
+    std::vector<std::string> input_names;
+    for (const auto &x : model.graph().input()) {
+      input_names.push_back(x.name());
+    }
+    for (const auto &x : model.graph().initializer()) {
+      if (std::find(input_names.begin(), input_names.end(), x.name()) ==
+          input_names.end()) {
+        auto *value_info = model.mutable_graph()->add_input();
+        value_info->set_name(x.name());
+        TypeProto *type = value_info->mutable_type();
+        auto *tensor = type->mutable_tensor_type();
+        tensor->set_elem_type(x.data_type());
+        auto *shape = tensor->mutable_shape();
+        for (const auto &dim : x.dims()) {
+          TensorShapeProto::Dimension *new_dim = shape->add_dim();
+          new_dim->set_dim_value(dim);
         }
       }
       return model;
