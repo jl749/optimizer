@@ -11,11 +11,14 @@
       config.allowUnfree = true;
     };
     pythonEnv = pkgs.python312.withPackages (ps: with ps; [
-      onnx
-      cmake
       setuptools
-      distutils
+      wheel
+      cmake
+      protobuf
+
+      onnx
       mypy
+      distutils
       pybind11
     ]);
   in {

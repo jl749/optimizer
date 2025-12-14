@@ -22,19 +22,13 @@ Optimizer::Optimizer(
     this->pass_manager =
         std::shared_ptr<GeneralPassManager>(new GeneralPassManager());
   }
-  // append Pass to PassManager
-  for (std::string& const name : names) {
+  for (const auto& name : names) {
     auto pass = passes.find(name);
     this->pass_manager->add(pass);
   }
 }
 Optimizer::~Optimizer() {}
 
-/**
- * pybind `optimize` entry point
- * - Optimize
- * - OptimizeFixed
- */
 ModelProto Optimize(
     const ModelProto& mp_in,
     const std::vector<std::string>& names) {

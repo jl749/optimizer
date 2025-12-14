@@ -2,10 +2,7 @@
 dynamic = ["version"]
 name = "onnxoptimizer"
 description = "ONNX Optimizer"
-license = 'Apache-2.0'
-license-files = [
-  "LICENSE"
-]
+license = {file = 'LICENSE'}
 authors = [
   {name = 'ONNX Optimizer Authors', email = "onnx-technical-discuss@lists.lfai.foundation"},
 ]
@@ -26,10 +23,10 @@ onnxoptimizer = "onnxoptimizer:main"
 
 [build-system]
 requires = [
-  "setuptools>=68",
-  "wheel",
-  "cmake>=3.22",
-  "protobuf>=4.25.1"
+  # "setuptools>=68",
+  # "wheel",
+  # "cmake>=3.22",
+  # "protobuf>=4.25.1"
 ]
 build-backend = "setuptools.build_meta"
 
